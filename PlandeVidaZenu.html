@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Plan de Vida del Territorio Zenú</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Earthy Neutrals -->
+    <!-- Application Structure Plan: The application is structured as a single-page exploratory dashboard. This design moves away from the linear format of the source document to facilitate user-driven discovery. The structure includes: a fixed navigation bar for quick access to key sections (Inicio, Diagnóstico, Ejes Estratégicos, Metas, Presupuesto), an introductory section to set the context, a card-based SWOT analysis for easy comparison, an interactive tab system for exploring the six core strategic axes without information overload, a visual timeline for project phases, and a budget visualization with a doughnut chart. This thematic and interactive structure was chosen to make the dense, multi-faceted plan digestible and engaging, allowing stakeholders to quickly grasp the project's scope, strategy, and financial breakdown. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Justificación y Objetivos -> Goal: Inform -> Presentation: Formatted text cards -> Interaction: None -> Justification: Provides essential context upfront in a clear, readable format. -> Method: HTML/Tailwind.
+        - Report Info: Análisis DOFA -> Goal: Organize/Compare -> Presentation: Four-column grid with cards for each element (Debilidades, Oportunidades, Fortalezas, Amenazas). -> Interaction: None -> Justification: Visually separates the components of the SWOT analysis for quick scanning and comparison, which is more effective than a simple list. -> Method: HTML/Tailwind Grid.
+        - Report Info: Ejes Estratégicos (6 detailed sections) -> Goal: Organize/Explore -> Presentation: An interactive tab/button system. -> Interaction: User clicks a button for an axis (e.g., 'Territorio') to display only its detailed content (diagnóstico, objetivo, estrategias), hiding the others. -> Justification: This is the core interactive element. It prevents overwhelming the user with a massive wall of text and allows for focused exploration of the plan's most critical components. -> Method: JavaScript manipulating CSS classes.
+        - Report Info: Cronograma -> Goal: Show change/sequence -> Presentation: A visual, horizontal timeline component. -> Interaction: None, static representation. -> Justification: A timeline visually communicates the project's phases and duration more effectively than a table or list. -> Method: HTML/Tailwind.
+        - Report Info: Presupuesto (Budget) -> Goal: Compare proportions -> Presentation: Doughnut Chart. -> Interaction: Hover tooltips showing amounts and percentages. -> Justification: A doughnut chart is ideal for showing the proportional distribution of a total budget, making financial allocations immediately understandable. -> Library: Chart.js (Canvas).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #3D352E;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #C07B45;
+            border-bottom-color: #C07B45;
+        }
+        .eje-button {
+            transition: all 0.3s ease-in-out;
+        }
+        .eje-button.active {
+            background-color: #9C6644;
+            color: #FFFFFF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: #C07B45;
+            border-radius: 50%;
+            border: 3px solid #FDFBF8;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #E5D9D0;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-xl font-bold text-[#6B4F4F]">
+                Plan de Vida <span class="text-[#9C6644]">Zenú</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#inicio" class="nav-link pb-1">Inicio</a>
+                <a href="#diagnostico" class="nav-link pb-1">Diagnóstico</a>
+                <a href="#ejes" class="nav-link pb-1">Ejes Estratégicos</a>
+                <a href="#metas" class="nav-link pb-1">Metas</a>
+                <a href="#presupuesto" class="nav-link pb-1">Presupuesto</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-2xl">☰</button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden bg-white px-6 pb-4 flex flex-col space-y-2">
+             <a href="#inicio" class="nav-link text-center py-1">Inicio</a>
+             <a href="#diagnostico" class="nav-link text-center py-1">Diagnóstico</a>
+             <a href="#ejes" class="nav-link text-center py-1">Ejes Estratégicos</a>
+             <a href="#metas" class="nav-link text-center py-1">Metas</a>
+             <a href="#presupuesto" class="nav-link text-center py-1">Presupuesto</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="inicio" class="text-center min-h-[60vh] flex flex-col justify-center items-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#6B4F4F] leading-tight">Proyecto de Actualización y Puesta en Marcha del Plan de Vida del Territorio Zenú</h1>
+            <p class="mt-4 text-lg md:text-xl text-[#A4907C] max-w-3xl">Una iniciativa para el fortalecimiento de la autonomía, la cultura y el desarrollo sostenible del Resguardo Indígena Zenú de San Andrés de Sotavento, Córdoba - Sucre.</p>
+            <p class="mt-8 text-sm font-semibold">Presentado por: Martín Darío Moreno Arguello, Cacique Mayor Regional del Pueblo Zenú</p>
+        </section>
+
+        <section id="objetivos" class="my-16">
+            <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12 border border-gray-200">
+                <h2 class="text-3xl font-bold text-center mb-8 text-[#9C6644]">Propósito del Plan</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-3 text-[#6B4F4F]">Justificación</h3>
+                        <p class="text-gray-600 leading-relaxed">Este proyecto surge de la necesidad de actualizar y dinamizar el Plan de Vida del pueblo Zenú, un instrumento de planificación y gestión territorial construido de manera participativa. Busca fortalecer el gobierno propio, proteger el territorio, revitalizar la identidad cultural y mejorar la calidad de vida de las comunidades, enfrentando los desafíos actuales y aprovechando las oportunidades para el desarrollo autónomo.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold mb-3 text-[#6B4F4F]">Objetivo General</h3>
+                        <p class="text-gray-600 leading-relaxed">Actualizar y poner en marcha el Plan de Vida del Resguardo Indígena Zenú de Córdoba y Sucre, como herramienta fundamental de gobierno propio para la pervivencia y el desarrollo integral del pueblo Zenú, a través de la implementación de programas y proyectos en seis ejes estratégicos durante un periodo de cuatro años.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="diagnostico" class="my-16">
+            <h2 class="text-3xl font-bold text-center mb-10 text-[#9C6644]">Diagnóstico Estratégico (DOFA)</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">Esta sección presenta un análisis de la situación actual del territorio, identificando los factores internos y externos que inciden en el desarrollo del Plan de Vida. Comprender estas dinámicas es fundamental para diseñar estrategias efectivas y pertinentes.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500">
+                    <h3 class="text-xl font-semibold mb-3 text-green-700">Fortalezas</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Existencia de un gobierno propio.</li>
+                        <li>Territorio legalmente constituido.</li>
+                        <li>Riqueza cultural y saberes ancestrales.</li>
+                        <li>Organización comunitaria sólida.</li>
+                        <li>Potencial agropecuario y artesanal.</li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">
+                    <h3 class="text-xl font-semibold mb-3 text-blue-700">Oportunidades</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Políticas públicas a favor de pueblos indígenas.</li>
+                        <li>Apoyo de cooperación internacional.</li>
+                        <li>Mercados para productos orgánicos y artesanales.</li>
+                        <li>Desarrollo del turismo cultural.</li>
+                        <li>Alianzas estratégicas con otras entidades.</li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-yellow-500">
+                    <h3 class="text-xl font-semibold mb-3 text-yellow-700">Debilidades</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Pérdida de prácticas culturales.</li>
+                        <li>Infraestructura y servicios básicos deficientes.</li>
+                        <li>Bajos niveles de productividad.</li>
+                        <li>Conflictos internos por el uso de la tierra.</li>
+                        <li>Débil articulación institucional.</li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500">
+                    <h3 class="text-xl font-semibold mb-3 text-red-700">Amenazas</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        <li>Presencia de actores armados.</li>
+                        <li>Explotación de recursos naturales por externos.</li>
+                        <li>Cambio climático y degradación ambiental.</li>
+                        <li>Pérdida de la lengua materna.</li>
+                        <li>Impacto de economías externas.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="ejes" class="my-16">
+            <h2 class="text-3xl font-bold text-center mb-10 text-[#9C6644]">Ejes Estratégicos</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">El corazón del Plan de Vida se organiza en seis ejes temáticos interconectados. Cada eje representa un área vital para el desarrollo y la pervivencia del pueblo Zenú. Navegue a través de los botones para explorar el diagnóstico, los objetivos y las estrategias propuestas para cada uno.</p>
+            <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+                <button class="eje-button active px-4 py-2 md:px-6 md:py-3 bg-white rounded-full shadow-sm font-semibold text-[#6B4F4F] hover:bg-[#E5D9D0]" data-eje="territorio">🌏 Territorio</button>
+                <button class="eje-button px-4 py-2 md:px-6 md:py-3 bg-white rounded-full shadow-sm font-semibold text-[#6B4F4F] hover:bg-[#E5D9D0]" data-eje="gobierno">🏛️ Gobierno Propio</button>
+                <button class="eje-button px-4 py-2 md:px-6 md:py-3 bg-white rounded-full shadow-sm font-semibold text-[#6B4F4F] hover:bg-[#E5D9D0]" data-eje="cultura">🎨 Cultura</button>
+                <button class="eje-button px-4 py-2 md:px-6 md:py-3 bg-white rounded-full shadow-sm font-semibold text-[#6B4F4F] hover:bg-[#E5D9D0]" data-eje="social">🤝 Social</button>
+                <button class="eje-button px-4 py-2 md:px-6 md:py-3 bg-white rounded-full shadow-sm font-semibold text-[#6B4F4F] hover:bg-[#E5D9D0]" data-eje="ambiente">🌿 Ambiente</button>
+                <button class="eje-button px-4 py-2 md:px-6 md:py-3 bg-white rounded-full shadow-sm font-semibold text-[#6B4F4F] hover:bg-[#E5D9D0]" data-eje="economia">📈 Economía</button>
+            </div>
+
+            <div id="ejes-content" class="bg-white rounded-2xl shadow-lg p-8 md:p-10 border border-gray-200 min-h-[300px]">
+            </div>
+        </section>
+        
+        <section id="metas" class="my-16">
+            <h2 class="text-3xl font-bold text-center mb-10 text-[#9C6644]">Metas y Cronograma</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">Esta sección detalla los resultados que se esperan alcanzar y el plan de trabajo distribuido en el tiempo. La ejecución del proyecto se ha planificado en fases para asegurar un desarrollo progresivo y medible de los objetivos.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div class="bg-white rounded-xl shadow-md p-8">
+                     <h3 class="text-2xl font-semibold mb-6 text-[#6B4F4F]">Resultados Esperados</h3>
+                     <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3 mt-1">✓</span>
+                            <span class="text-gray-700">Plan de Vida actualizado y socializado con 100% de las comunidades.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3 mt-1">✓</span>
+                            <span class="text-gray-700">Sistema de Gobierno Propio fortalecido y operando según la ley de origen.</span>
+                        </li>
+                         <li class="flex items-start">
+                            <span class="text-green-500 mr-3 mt-1">✓</span>
+                            <span class="text-gray-700">500 hectáreas de territorio en proceso de reforestación con especies nativas.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3 mt-1">✓</span>
+                            <span class="text-gray-700">20 proyectos de emprendimiento económico propio formulados y en ejecución.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3 mt-1">✓</span>
+                            <span class="text-gray-700">Implementación de un modelo de salud propia y educación propia (SEIP).</span>
+                        </li>
+                     </ul>
+                </div>
+                <div class="relative pl-8">
+                     <div class="timeline-line"></div>
+                     <h3 class="text-2xl font-semibold mb-8 text-[#6B4F4F] -ml-8">Cronograma (48 Meses)</h3>
+                     <div class="space-y-10">
+                        <div class="relative pl-4 timeline-item">
+                           <h4 class="font-semibold text-lg text-[#9C6644]">Fase 1: Alistamiento y Diagnóstico (Mes 1-6)</h4>
+                           <p class="text-gray-600">Conformación de equipos, socialización, recolección de información y diagnóstico participativo detallado.</p>
+                        </div>
+                        <div class="relative pl-4 timeline-item">
+                           <h4 class="font-semibold text-lg text-[#9C6644]">Fase 2: Formulación y Planificación (Mes 7-12)</h4>
+                           <p class="text-gray-600">Construcción de la visión, formulación de programas y proyectos por cada eje estratégico.</p>
+                        </div>
+                        <div class="relative pl-4 timeline-item">
+                           <h4 class="font-semibold text-lg text-[#9C6644]">Fase 3: Implementación y Ejecución (Mes 13-42)</h4>
+                           <p class="text-gray-600">Puesta en marcha de los proyectos priorizados, desarrollo de actividades y gestión de recursos.</p>
+                        </div>
+                        <div class="relative pl-4 timeline-item">
+                           <h4 class="font-semibold text-lg text-[#9C6644]">Fase 4: Seguimiento y Evaluación (Mes 43-48)</h4>
+                           <p class="text-gray-600">Monitoreo de avances, evaluación de impacto y ajuste de estrategias para la sostenibilidad del plan.</p>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="presupuesto" class="my-16">
+            <h2 class="text-3xl font-bold text-center mb-10 text-[#9C6644]">Presupuesto General</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">La viabilidad del Plan de Vida depende de una gestión financiera clara y estratégica. Aquí se presenta la distribución del presupuesto total proyectado, que asciende a $20 mil millones de pesos, detallando la asignación de recursos a los componentes clave del proyecto.</p>
+            <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12 border border-gray-200">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div class="chart-container">
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-center mb-6 text-[#6B4F4F]">Distribución de Recursos</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full mr-3" style="background-color: #9C6644;"></div>
+                                    <span class="font-semibold text-gray-700">Recurso Humano</span>
+                                </div>
+                                <span class="font-bold text-gray-800">$6.334.000.000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full mr-3" style="background-color: #C07B45;"></div>
+                                    <span class="font-semibold text-gray-700">Estudios Especializados</span>
+                                </div>
+                                <span class="font-bold text-gray-800">$8.486.000.000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full mr-3" style="background-color: #E5D9D0;"></div>
+                                    <span class="font-semibold text-gray-700">Gastos Administrativos</span>
+                                </div>
+                                <span class="font-bold text-gray-800">$3.536.900.000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full mr-3" style="background-color: #A4907C;"></div>
+                                    <span class="font-semibold text-gray-700">Gastos Operativos</span>
+                                </div>
+                                <span class="font-bold text-gray-800">$1.643.100.000</span>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center">
+                            <span class="text-xl font-bold text-gray-800">Total General</span>
+                            <span class="text-xl font-bold text-[#9C6644]">$20.000.000.000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-[#6B4F4F] text-white mt-16">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2025 Resguardo Indígena Zenú de San Andrés de Sotavento.</p>
+            <p class="text-sm mt-2 text-gray-300">Proyecto de Actualización y Puesta en Marcha del Plan de Vida.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const ejesData = {
+                territorio: {
+                    title: '🌏 Territorio y Territorialidad',
+                    content: `
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Diagnóstico</h4>
+                        <p class="mb-4 text-gray-600">El territorio enfrenta presiones por la expansión de monocultivos, la minería y la degradación de suelos. Hay conflictos por el uso y tenencia de la tierra, y es necesario fortalecer los mecanismos de protección y ordenamiento territorial propio.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Objetivo</h4>
+                        <p class="mb-4 text-gray-600">Garantizar la protección, el saneamiento, la ampliación y el manejo sostenible del territorio ancestral Zenú, de acuerdo con los principios culturales y la ley de origen.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Estrategias</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
+                            <li>Implementar un Plan de Ordenamiento Territorial Ambiental propio.</li>
+                            <li>Adquirir predios para la ampliación y saneamiento del resguardo.</li>
+                            <li>Fortalecer la Guardia Indígena para el control territorial.</li>
+                            <li>Recuperar y proteger sitios sagrados y fuentes hídricas.</li>
+                        </ul>`
+                },
+                gobierno: {
+                    title: '🏛️ Gobierno Propio y Autonomía',
+                    content: `
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Diagnóstico</h4>
+                        <p class="mb-4 text-gray-600">Aunque existe una estructura de gobierno, se requiere fortalecer las capacidades de gestión, la articulación entre las autoridades locales y el Cacique Mayor, y la aplicación efectiva de la justicia propia para consolidar la autonomía.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Objetivo</h4>
+                        <p class="mb-4 text-gray-600">Fortalecer el sistema de Gobierno Propio del pueblo Zenú, consolidando su autonomía política, administrativa y jurídica en el marco de la Constitución y la ley de origen.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Estrategias</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
+                            <li>Capacitar a las autoridades en gestión pública y legislación indígena.</li>
+                            <li>Actualizar y socializar los reglamentos internos y manuales de funciones.</li>
+                            <li>Fortalecer los mecanismos de participación y toma de decisiones.</li>
+                            <li>Establecer un sistema de justicia propia reconocido y operante.</li>
+                        </ul>`
+                },
+                cultura: {
+                    title: '🎨 Cultura e Identidad',
+                    content: `
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Diagnóstico</h4>
+                        <p class="mb-4 text-gray-600">Se evidencia un debilitamiento en la transmisión de saberes ancestrales, prácticas culturales y el uso de la lengua. Es crucial revitalizar la identidad Zenú, especialmente entre los jóvenes, para asegurar la pervivencia cultural.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Objetivo</h4>
+                        <p class="mb-4 text-gray-600">Revitalizar y fortalecer la identidad cultural del pueblo Zenú a través de la recuperación, práctica y transmisión de los saberes, la lengua, las artes y las tradiciones.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Estrategias</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
+                            <li>Crear escuelas de formación en música, danza, tejido y otras artes.</li>
+                            <li>Desarrollar programas de revitalización de la lengua Zenú.</li>
+                            <li>Sistematizar y difundir la historia y la cosmogonía del pueblo.</li>
+                            <li>Promover encuentros de sabedores y mayores con jóvenes.</li>
+                        </ul>`
+                },
+                social: {
+                    title: '🤝 Social y Comunitario',
+                    content: `
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Diagnóstico</h4>
+                        <p class="mb-4 text-gray-600">Persisten brechas en el acceso a salud, educación, vivienda y servicios básicos. Se requiere un enfoque propio e intercultural para mejorar la calidad de vida y fortalecer el tejido social comunitario.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Objetivo</h4>
+                        <p class="mb-4 text-gray-600">Mejorar la calidad de vida de las familias Zenú, garantizando el acceso a derechos fundamentales a través de un modelo de bienestar propio (Salud y Educación - SEIP).</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Estrategias</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
+                            <li>Implementar el Sistema Educativo Indígena Propio (SEIP).</li>
+                            <li>Fortalecer el Sistema de Salud Propio Intercultural (SISPI).</li>
+                            <li>Desarrollar programas de vivienda digna y saneamiento básico.</li>
+                            <li>Promover el deporte, la recreación y los hábitos de vida saludables.</li>
+                        </ul>`
+                },
+                ambiente: {
+                    title: '🌿 Ambiente y Biodiversidad',
+                    content: `
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Diagnóstico</h4>
+                        <p class="mb-4 text-gray-600">El territorio ha sufrido deforestación, contaminación de fuentes hídricas y pérdida de biodiversidad. El cambio climático representa una amenaza significativa para la seguridad alimentaria y las prácticas tradicionales.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Objetivo</h4>
+                        <p class="mb-4 text-gray-600">Proteger, conservar y recuperar la biodiversidad y los ecosistemas estratégicos del territorio Zenú, promoviendo un manejo ambiental sostenible basado en el conocimiento ancestral.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Estrategias</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
+                            <li>Implementar proyectos de reforestación con especies nativas.</li>
+                            <li>Promover prácticas agroecológicas y de soberanía alimentaria.</li>
+                            <li>Desarrollar un plan de manejo de residuos sólidos.</li>
+                            <li>Monitorear y proteger la fauna y flora del territorio.</li>
+                        </ul>`
+                },
+                economia: {
+                    title: '📈 Economía Propia',
+                    content: `
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Diagnóstico</h4>
+                        <p class="mb-4 text-gray-600">La economía se basa en la agricultura de pancoger y la artesanía, con limitado acceso a mercados y cadenas de valor. Es necesario diversificar las fuentes de ingreso y fortalecer las iniciativas económicas comunitarias.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Objetivo</h4>
+                        <p class="mb-4 text-gray-600">Consolidar un sistema de economía propia sostenible que articule las prácticas tradicionales con nuevas oportunidades de mercado, mejorando los ingresos y el bienestar de las familias.</p>
+                        <h4 class="font-semibold text-lg mb-2 text-[#6B4F4F]">Estrategias</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600">
+                            <li>Fortalecer la producción y comercialización de la caña flecha.</li>
+                            <li>Promover el turismo cultural y comunitario responsable.</li>
+                            <li>Crear fondos de crédito rotatorio para emprendimientos.</li>
+                            <li>Establecer alianzas para la comercialización de productos agrícolas.</li>
+                        </ul>`
+                }
+            };
+            
+            const ejeButtons = document.querySelectorAll('.eje-button');
+            const ejesContentDiv = document.getElementById('ejes-content');
+
+            function updateEjeContent(ejeKey) {
+                const data = ejesData[ejeKey];
+                if (!data) return;
+
+                ejesContentDiv.innerHTML = `
+                    <h3 class="text-2xl font-bold mb-6 text-[#9C6644]">${data.title}</h3>
+                    ${data.content}
+                `;
+
+                ejeButtons.forEach(button => {
+                    button.classList.remove('active');
+                    if (button.dataset.eje === ejeKey) {
+                        button.classList.add('active');
+                    }
+                });
+            }
+            
+            ejeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateEjeContent(button.dataset.eje);
+                });
+            });
+
+            updateEjeContent('territorio');
+
+            const budgetCtx = document.getElementById('budgetChart').getContext('2d');
+            const budgetChart = new Chart(budgetCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Recurso Humano', 'Estudios Especializados', 'Gastos Administrativos', 'Gastos Operativos'],
+                    datasets: [{
+                        label: 'Distribución del Presupuesto',
+                        data: [6334000000, 8486000000, 3536900000, 1643100000],
+                        backgroundColor: [
+                            '#9C6644', 
+                            '#C07B45', 
+                            '#E5D9D0',
+                            '#A4907C'
+                        ],
+                        borderColor: '#FDFBF8',
+                        borderWidth: 4,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        const value = context.parsed;
+                                        const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                        label += new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value) + ` (${percentage})`;
+                                    }
+                                    return label;
+                                }
+                            },
+                            backgroundColor: '#3D352E',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 5
+                        }
+                    }
+                }
+            });
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            const mobileNavLinks = mobileMenu.querySelectorAll('a');
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
